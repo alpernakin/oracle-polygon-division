@@ -5,15 +5,23 @@
 -- Oracle spatial does not have ability to divide polygons into two parts. There is also not third party library to do this task.
 -- Therefore, this code has been written in order to contribute developers. An algorithm has been developed regarding geometry.
 ------------------------------------------------------------------------------------------------------------------------------------
--- Total 3 functions and a type have been included. The main function is "divide_polygon_into2"  function. Other functions are coded
--- to help the main function. Their functionalities will be given in the comment sections.
-------------------------------------------------------------------------------------------------------------------------------------
--- ATTENTION!!
--- drawn_area_temp table is needed to be created in order to do operations such "sdo_relate". "geoloc" field of the table must be
--- indexed in order to achive operation. See readme please.
+-- Total 3 functions, a type, a table and an index have been included. The main function is "divide_polygon_into2"  function. 
+-- Other functions are coded to help the main function. Their functionalities will be given in the comment sections.
 ------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------
 
+
+------------------------------------------------------------------------------------------------------------------------------------
+-- drawn_area_temp table is required in order to run spatial operations such "sdo_relate" with indexed "geoloc" field.
+-- See below please for understanding purpose of the table.
+------------------------------------------------------------------------------------------------------------------------------------
+create table drawn_area_temp(
+	id raw(16),
+	geoloc mdsys.sdo_geometry
+);
+
+create index drawn_area_temp_geo_index on drawn_area_temp (geoloc)
+	indextype is mdsys.spatial_index;
 
 ------------------------------------------------------------------------------------------------------------------------------------
 -- This type is defined in order to store mdsys.sdo_geometry type of data in arrays.
