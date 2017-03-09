@@ -10,7 +10,7 @@
 ------------------------------------------------------------------------------------------------------------------------------------
 -- ATTENTION!!
 -- drawn_area_temp table is needed to be created in order to do operations such "sdo_relate". "geoloc" field of the table must be
--- indexed in order to achive operation. See below please.
+-- indexed in order to achive operation. See readme please.
 ------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------
 
