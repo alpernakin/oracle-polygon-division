@@ -17,7 +17,8 @@
 ------------------------------------------------------------------------------------------------------------------------------------
 create table drawn_area_temp(
 	id raw(16),
-	geoloc mdsys.sdo_geometry
+	geoloc mdsys.sdo_geometry,
+	constraint drawn_area_temp_pk PRIMARY KEY (id)
 );
 
 create index drawn_area_temp_geo_index on drawn_area_temp (geoloc)
