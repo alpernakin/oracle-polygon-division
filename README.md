@@ -1,3 +1,3 @@
 # oracle-polygon-division
 
-You can understand rest part by reading comments on the code.
+Comments in the code will help to figure out.
