@@ -2,18 +2,19 @@
 -- Alper Necati Akin
 ------------------------------------------------------------------------------------------------------------------------------------
 -- Polygon division by using oracle spatial. It has been developed for one of Turk Telekom GIS projects by me.
--- Oracle spatial does not have ability to divide polygons into two parts. There is also not third party library to do this task.
--- Therefore, this code has been written in order to contribute developers. An algorithm has been developed regarding geometry.
+-- Oracle spatial does not have any function or method dividing polygons into two parts. 
+-- There is also not a third party library doing this task.
+-- Therefore, this code has been written to contribute developers. A geometric algorithm has been developed.
 ------------------------------------------------------------------------------------------------------------------------------------
--- Total 3 functions, a type, a table and an index have been included. The main function is "divide_polygon_into2"  function. 
+-- In total 3 functions, a type, a table and an index have been included. The main function is "divide_polygon_into2" function. 
 -- Other functions are coded to help the main function. Their functionalities will be given in the comment sections.
 ------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------
 
 
 ------------------------------------------------------------------------------------------------------------------------------------
--- drawn_area_temp table is required in order to run spatial operations such "sdo_relate" with indexed "geoloc" field.
--- See below please for understanding purpose of the table.
+-- drawn_area_temp table is required to run spatial operations such "sdo_relate" with indexed "geoloc" field.
+-- See below please to understand the purpose of the table.
 ------------------------------------------------------------------------------------------------------------------------------------
 create table drawn_area_temp(
 	id raw(16),
@@ -25,13 +26,13 @@ create index drawn_area_temp_geo_index on drawn_area_temp (geoloc)
 	indextype is mdsys.spatial_index;
 
 ------------------------------------------------------------------------------------------------------------------------------------
--- This type is defined in order to store mdsys.sdo_geometry type of data in arrays.
+-- This type is defined to store mdsys.sdo_geometry type of data in arrays.
 ------------------------------------------------------------------------------------------------------------------------------------
 
 create or replace type geom_array is table of mdsys.sdo_geometry;
 
 ------------------------------------------------------------------------------------------------------------------------------------
--- This function splits each line of a polygon and returns those lines in an array.
+-- This function splits each line of a polygon and returns these lines in an array.
 
 -- Params: 
 -- p_polygon: polygon to be divided
@@ -47,7 +48,7 @@ create or replace function split_polygon_to_lines(p_polygon in mdsys.sdo_geometr
 
   v_lines    	   geom_array := geom_array();
 begin
-  -- If the parameter is not a polygon, then raise application error
+  -- If the parameter is not a polygon, then raise an application error
   if p_polygon.sdo_ordinates.count < 5 then
     raise_application_error(-20009,
                             'The parameter must be polygon type.');
@@ -76,11 +77,11 @@ begin
 end;
 
 ------------------------------------------------------------------------------------------------------------------------------------
--- This function finds the line which intersects with the point the dividing line.
+-- This function finds intersecting lines of the polygon with the dividing line.
 
 -- Params: 
 -- p_lines: splitted lines of the polygon in an array.
--- p_intersectionPoint: one of intersected points with the dividing line.
+-- p_intersectionPoint: one of intersecting points of the polygon with the dividing line.
 
 -- Return: index of the line which intersects with the point. if there is no line intersects, it returns -1
 ------------------------------------------------------------------------------------------------------------------------------------
@@ -99,10 +100,11 @@ begin
   -- a guid data is created in order to distinguish p_intersectionPoint in the table.
   v_guid = sys_guid();
 
-  -- drawn_area_temp table is needed to be created in order to do operations such sdo_relate
-  -- sdo_relate reqires indexed geolocation for matching operations.
-  -- Therefore, p_intersectionPoint is inserted into drawn_area_temp table in order determine if any interact exists between lines 
-  -- and the point by using sdo_relate
+  -- drawn_area_temp table is required to be created to run operations like 'sdo_relate'
+  -- 'sdo_relate' method reqiures indexed geolocation for matching operations.
+  
+  -- Therefore, p_intersectionPoint is inserted into drawn_area_temp table to determine ->
+  -- if any interaction exists between lines and the point by using sdo_relate  
   insert into drawn_area_temp
     (id, geoloc)
   values
@@ -138,27 +140,27 @@ end;
 -- p_polygon: polygon to be divided.
 -- p_polyLine: dividing line
 
--- Return: geom_array type of array which includes two polygons obtained from p_polygon.
+-- Return: geom_array type of array that includes two polygons complementing p_polygon.
 ------------------------------------------------------------------------------------------------------------------------------------
 
 create or replace function divide_polygon_into2(p_polygon  in mdsys.sdo_geometry,
                                                 p_polyLine in mdsys.sdo_geometry)
   return geom_array is
 
-  -- counters for polygon points
+  -- counters for points of the polygon
   v_index          number;
   v_ordinatesIndex number;
 
-  -- Index of the first line of the polygon intersects with dividing line
+  -- Index of the first line of the polygon intersecting with dividing line
   v_startIndex number; 
-  -- Index of the last line of the polygon intersects with dividing line
+  -- Index of the last line of the polygon intersecting with dividing line
   v_endIndex   number;
 
-  -- A part of the dividing line which takes place in the polygon
+  -- A part of the dividing line that takes place in the polygon
   v_intersectedLine       mdsys.sdo_geometry; 
-  -- The first point on polygon which intersects with the dividing line  
+  -- The first point on polygon that intersects with the dividing line  
   v_insersectedFirstPoint mdsys.sdo_geometry; 
-  -- The last point on polygon which intersects with the dividing line  
+  -- The last point on polygon that intersects with the dividing line  
   v_intersectedSecPoint   mdsys.sdo_geometry;
 
   -- Sub polygon that is extracted from the polygon and added to result array.
@@ -169,12 +171,12 @@ create or replace function divide_polygon_into2(p_polygon  in mdsys.sdo_geometry
   -- Return an array of sub polygons
   v_result geom_array := geom_array(); 
 begin
-  -- A part of the dividing line which intersects with the polygon is determined
+  -- A part of the dividing line that intersects with the polygon is determined
   select sdo_geom.sdo_intersection(p_polygon, p_polyLine, 0.005)
     into v_intersectedLine
     from dual;
 
-  -- If the dividing line does not intersect with the polygon or it is not a line currently, then raise application error
+  -- If the dividing line does not intersect with the polygon or it is not a proper line, then raise an application error
   if v_intersectedLine is null or
      v_intersectedLine.sdo_ordinates.count <= 2 then
     raise_application_error(-20010, 'Drawing failed');
@@ -192,7 +194,7 @@ begin
 
   v_ordinatesIndex := v_polygon.sdo_ordinates.count;
 
-  -- First and last intersected lines of the polygon are determined.
+  -- First and last intersecting lines of the polygon are determined.
   v_insersectedFirstPoint := mdsys.sdo_geometry(2001,
                                                 8307,
                                                 mdsys.sdo_point_type(v_polygon.sdo_ordinates(1),
@@ -213,7 +215,7 @@ begin
   v_endIndex   := find_intersected_line_by_point(v_polygonLines,
                                                  v_insersectedFirstPoint);
 
-  -- Cycling around polygon from the last intersected point to last intersected point
+  -- Cycling around polygon from the last intersecting point to last intersecting point
   v_index := v_startIndex;
   if v_startIndex <> v_endIndex then
     loop
@@ -236,7 +238,7 @@ begin
     end loop;
   end if;
 
-  -- First lat and lng values are added in order to complete to polygon.
+  -- First latitude and longitude values are added to complete the polygon.
   v_polygon.sdo_ordinates.extend(1);
   v_ordinatesIndex := v_ordinatesIndex + 1;
   v_polygon.sdo_ordinates(v_ordinatesIndex) := v_polygon.sdo_ordinates(1);
