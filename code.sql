@@ -1,16 +1,10 @@
 ------------------------------------------------------------------------------------------------------------------------------------
 -- Alper Necati Akin
 ------------------------------------------------------------------------------------------------------------------------------------
--- Polygon division by using oracle spatial. It has been developed for one of Turk Telekom GIS projects by me.
--- Oracle spatial does not have any function or method dividing polygons into two parts. 
--- There is also not a third party library doing this task.
--- Therefore, this code has been written to contribute developers. A geometric algorithm has been developed.
+-- Polygon division on Oracle Spatial.
+-- As Oracle Spatial does not support polygon division, the code has been produced to contribute, whom want to divide a polygon with
+-- a divider line on Oracle. The main function is "divide_polygon_into2".
 ------------------------------------------------------------------------------------------------------------------------------------
--- In total 3 functions, a type, a table and an index have been included. The main function is "divide_polygon_into2" function. 
--- Other functions are coded to help the main function. Their functionalities will be given in the comment sections.
-------------------------------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------------------
-
 
 ------------------------------------------------------------------------------------------------------------------------------------
 -- drawn_area_temp table is required to run spatial operations such "sdo_relate" with indexed "geoloc" field.
@@ -32,12 +26,12 @@ create index drawn_area_temp_geo_index on drawn_area_temp (geoloc)
 create or replace type geom_array is table of mdsys.sdo_geometry;
 
 ------------------------------------------------------------------------------------------------------------------------------------
--- This function splits each line of a polygon and returns these lines in an array.
+-- It splits a polygon into edges and returns the edge lines in an array.
 
 -- Params: 
 -- p_polygon: polygon to be divided
 
--- Return: splitted lines in an array.
+-- Return: edge lines in an array.
 ------------------------------------------------------------------------------------------------------------------------------------
 
 create or replace function split_polygon_to_lines(p_polygon in mdsys.sdo_geometry)
@@ -54,7 +48,7 @@ begin
                             'The parameter must be polygon type.');
   end if;
 
-  -- It iterates each point of the polygon and distingushes lines one by one.
+  -- Iterate through each line of the given polygon and create a geometric line object
   for v_ordinatesIndex in 1 .. p_polygon.sdo_ordinates.count - 3 loop
     if mod(v_ordinatesIndex, 2) = 1 then
       v_lines.extend(1);
@@ -77,17 +71,17 @@ begin
 end;
 
 ------------------------------------------------------------------------------------------------------------------------------------
--- This function finds intersecting lines of the polygon with the dividing line.
+-- It finds the line index, where the given point intersects.
 
 -- Params: 
--- p_lines: splitted lines of the polygon in an array.
--- p_intersectionPoint: one of intersecting points of the polygon with the dividing line.
+-- p_lines: an array of lines.
+-- p_point: a simple point.
 
--- Return: index of the line which intersects with the point. if there is no line intersects, it returns -1
+-- Return: the index of the line, which intersects with the point. if there is no line intersects, it returns -1.
 ------------------------------------------------------------------------------------------------------------------------------------
 
-create or replace function find_intersected_line_by_point(p_lines             geom_array,
-                                                          p_intersectionPoint mdsys.sdo_geometry)
+create or replace function find_intersected_line_by_point(p_lines geom_array,
+                                                          p_point mdsys.sdo_geometry)
   return number is
   
   v_guid	      raw(16);
@@ -97,28 +91,26 @@ create or replace function find_intersected_line_by_point(p_lines             ge
 
   pragma autonomous_transaction;
 begin
-  -- a guid data is created in order to distinguish p_intersectionPoint in the table.
+  -- a guid data is created in order to identify p_point in the table.
   v_guid = sys_guid();
-
+												   
   -- drawn_area_temp table is required to be created to run operations like 'sdo_relate'
   -- 'sdo_relate' method reqiures indexed geolocation for matching operations.
-  
-  -- Therefore, p_intersectionPoint is inserted into drawn_area_temp table to determine ->
-  -- if any interaction exists between lines and the point by using sdo_relate  
   insert into drawn_area_temp
     (id, geoloc)
   values
-    (v_guid, p_intersectionPoint);
+    (v_guid, p_point);
   commit;
-
-  -- sdo_relate operation is used for each line to understand if there is any ineteract.
+												   
+  -- see if there 
   for v_index in 1 .. p_lines.count loop
     select sdo_relate(t.geoloc, p_lines(v_index), 'mask=anyinteract')
       into v_isIntersected
       from drawn_area_temp t
      where t.id = v_guid;
   
-	-- If current line ineteracts with the point, then set result to index and break loop.
+    -- if the current line intersects with the point, 
+    -- then set result to index and break loop.
     if v_isIntersected = 'TRUE' then
       v_result := v_index;
       exit;
